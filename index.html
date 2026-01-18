@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>I'm Sorry</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Georgia', serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        body.started {
+            cursor: crosshair;
+        }
+
+        .message {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            z-index: 10;
+            padding: 40px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.8s ease;
+            cursor: pointer;
+        }
+
+        .message.minimized {
+            top: 30px;
+            left: 30px;
+            transform: translate(0, 0);
+            padding: 15px 25px;
+            font-size: 0.7em;
+            pointer-events: all;
+        }
+
+        .message.minimized h1 {
+            font-size: 1.5em;
+            margin-bottom: 0;
+        }
+
+        .message.minimized p {
+            display: none;
+        }
+
+        h1 {
+            font-size: 3.5em;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        p {
+            font-size: 1.3em;
+            line-height: 1.6;
+            max-width: 600px;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+
+        .start-btn {
+            margin-top: 30px;
+            padding: 15px 40px;
+            font-size: 1.1em;
+            background: rgba(255, 255, 255, 0.3);
+            border: 2px solid white;
+            color: white;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Georgia', serif;
+        }
+
+        .start-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            transform: scale(1.05);
+        }
+
+        .message.minimized .start-btn {
+            display: none;
+        }
+
+        .tulip {
+            position: absolute;
+            transition: opacity 0.5s;
+            pointer-events: none;
+        }
+
+        .stem {
+            width: 3px;
+            height: 80px;
+            background: linear-gradient(to bottom, #4a7c3a, #6b9d5a);
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .leaf {
+            width: 25px;
+            height: 15px;
+            background: #5a8c4a;
+            position: absolute;
+            bottom: 30px;
+            border-radius: 0 50% 50% 0;
+        }
+
+        .leaf.left {
+            left: -12px;
+            transform: rotate(-30deg);
+        }
+
+        .leaf.right {
+            right: -12px;
+            transform: rotate(30deg) scaleX(-1);
+        }
+
+        .petal {
+            width: 30px;
+            height: 40px;
+            position: absolute;
+            bottom: 65px;
+            left: 50%;
+            border-radius: 50% 50% 50% 50%;
+        }
+
+        .petal:nth-child(1) { transform: translateX(-50%) rotate(0deg) translateY(-15px); }
+        .petal:nth-child(2) { transform: translateX(-50%) rotate(72deg) translateY(-15px); }
+        .petal:nth-child(3) { transform: translateX(-50%) rotate(144deg) translateY(-15px); }
+        .petal:nth-child(4) { transform: translateX(-50%) rotate(216deg) translateY(-15px); }
+        .petal:nth-child(5) { transform: translateX(-50%) rotate(288deg) translateY(-15px); }
+
+        .instruction {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-size: 1.1em;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+            animation: pulse 2s infinite;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+
+        .instruction.visible {
+            opacity: 1;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        @keyframes bloom {
+            0% { transform: scale(0) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.1) rotate(5deg); opacity: 1; }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; }
+        }
+
+        .tulip {
+            animation: bloom 0.6s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="message" id="message">
+        <h1>I'm Sorry</h1>
+        <p>Words cannot express how truly sorry I am. Like these tulips blooming around you, I hope my apology can bring a little color and beauty back into your day. Please forgive me.</p>
+        <button class="start-btn" id="startBtn">Continue</button>
+    </div>
+
+    <div class="instruction" id="instruction">Move your cursor to grow tulips 🌷</div>
+
+    <script>
+        const colors = [
+            ['#ff6b9d', '#ff8fab'],  // Pink
+            ['#ffd93d', '#ffe66d'],  // Yellow
+            ['#ff6347', '#ff7f6e'],  // Red
+            ['#da70d6', '#e699e6'],  // Purple
+            ['#ff8c42', '#ffa55c'],  // Orange
+            ['#ffffff', '#f0f0f0']   // White
+        ];
+
+        let lastX = 0;
+        let lastY = 0;
+        let throttle = false;
+        let started = false;
+
+        const message = document.getElementById('message');
+        const startBtn = document.getElementById('startBtn');
+        const instruction = document.getElementById('instruction');
+
+        startBtn.addEventListener('click', () => {
+            started = true;
+            message.classList.add('minimized');
+            instruction.classList.add('visible');
+            document.body.classList.add('started');
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!started || throttle) return;
+            
+            const dx = e.clientX - lastX;
+            const dy = e.clientY - lastY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance > 50) {
+                createTulip(e.clientX, e.clientY);
+                lastX = e.clientX;
+                lastY = e.clientY;
+                throttle = true;
+                setTimeout(() => throttle = false, 200);
+            }
+        });
+
+        function createTulip(x, y) {
+            const tulip = document.createElement('div');
+            tulip.className = 'tulip';
+            tulip.style.left = x + 'px';
+            tulip.style.top = y + 'px';
+
+            const colorPair = colors[Math.floor(Math.random() * colors.length)];
+
+            const stem = document.createElement('div');
+            stem.className = 'stem';
+
+            const leafLeft = document.createElement('div');
+            leafLeft.className = 'leaf left';
+
+            const leafRight = document.createElement('div');
+            leafRight.className = 'leaf right';
+
+            for (let i = 0; i < 5; i++) {
+                const petal = document.createElement('div');
+                petal.className = 'petal';
+                const gradient = `linear-gradient(135deg, ${colorPair[0]}, ${colorPair[1]})`;
+                petal.style.background = gradient;
+                tulip.appendChild(petal);
+            }
+
+            stem.appendChild(leafLeft);
+            stem.appendChild(leafRight);
+            tulip.appendChild(stem);
+
+            document.body.appendChild(tulip);
+
+            setTimeout(() => {
+                tulip.style.opacity = '0';
+                setTimeout(() => tulip.remove(), 500);
+            }, 4000);
+        }
+    </script>
+</body>
+</html>
